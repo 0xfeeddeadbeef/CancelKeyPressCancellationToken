@@ -21,9 +21,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#pragma warning disable CS8622
+
 using System;
 using System.Threading;
 
+[Obsolete("Use the PosixSignalCancellationTokenSource class instead.", error: true)]
 public sealed class CancelKeyPressCancellationTokenSource : CancellationTokenSource
 {
     public CancelKeyPressCancellationTokenSource()

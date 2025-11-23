@@ -27,40 +27,32 @@ using System.Threading.Tasks;
 
 internal static class Program
 {
-    private static void Main()
+    private static async Task Main()
     {
-        using (var ctrlC = new CancelKeyPressCancellationTokenSource())
+        using var ctrlC = new PosixSignalCancellationTokenSource();
+
+        try
         {
-            CancellationToken tok = ctrlC.Token;
-
-            // Create dummy linked tcs. Just because.
-            using (var tcs = CancellationTokenSource.CreateLinkedTokenSource(tok, CancellationToken.None))
-            {
-                // tcs.CancelAfter(600);
-
-                try
-                {
-                    Run(tcs.Token).GetAwaiter().GetResult();
-                }
-                catch (OperationCanceledException cancel)
-                {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.Error.WriteLine(cancel.Message);
-                    Console.ResetColor();
-                }
-            }
+            await Run(ctrlC.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.Error.WriteLine("Abrupt cancellation");
+            Console.ResetColor();
         }
     }
 
-    private static async Task Run(CancellationToken token = default(CancellationToken))
+    private static async Task Run(CancellationToken token = default)
     {
-        if (token.IsCancellationRequested)
+        while (!token.IsCancellationRequested)  // Checking token status in a loop for graceful cancellation
         {
-            await Console.Out.WriteLineAsync("Task cancelled.").ConfigureAwait(false);
-            return;
+            Console.WriteLine("Working...");
+
+            // Passing CancellationToken.None to prevent abrupt cancellation
+            await Task.Delay(1200, CancellationToken.None).ConfigureAwait(false);
         }
 
-        await Task.Delay(8000, token).ConfigureAwait(false);
-        await Task.CompletedTask.ConfigureAwait(false);
+        Console.WriteLine("Graceful cancellation");
     }
 }
