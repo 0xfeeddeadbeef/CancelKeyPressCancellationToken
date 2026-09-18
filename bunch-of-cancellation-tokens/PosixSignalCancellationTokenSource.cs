@@ -22,15 +22,20 @@
 // THE SOFTWARE.
 
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Threading;
 
+[UnsupportedOSPlatform("android")]
+[UnsupportedOSPlatform("browser")]
+[UnsupportedOSPlatform("ios")]
+[UnsupportedOSPlatform("tvos")]
 public sealed class PosixSignalCancellationTokenSource : CancellationTokenSource
 {
     private readonly PosixSignalRegistration _sigHup;
     private readonly PosixSignalRegistration _sigInt;
     private readonly PosixSignalRegistration _sigQuit;
     private readonly PosixSignalRegistration _sigTerm;
-    private bool _disposed;
+    private int _disposed;
 
     public PosixSignalCancellationTokenSource()
     {
@@ -42,39 +47,70 @@ public sealed class PosixSignalCancellationTokenSource : CancellationTokenSource
         void handleSignal(PosixSignalContext signal)
         {
             signal.Cancel = true;
-            Cancel();
+            try
+            {
+                Cancel();
+            }
+            catch
+            {
+                // Signal handler should not throw
+            }
         }
     }
 
     protected override void Dispose(bool disposing)
     {
-        if (!_disposed)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
-            if (disposing)
-            {
-                try
-                {
-                    _sigHup.Dispose();
-                    _sigInt.Dispose();
-                    _sigQuit.Dispose();
-                    _sigTerm.Dispose();
-                }
-                catch
-                {
-                    // Dispose should not throw
-                }
-            }
+            return;
+        }
 
+        if (disposing)
+        {
             try
             {
-                base.Dispose(disposing);
+                _sigHup.Dispose();
             }
             catch
             {
                 // Dispose should not throw
             }
 
-            _disposed = true;
+            try
+            {
+                _sigInt.Dispose();
+            }
+            catch
+            {
+                // Dispose should not throw
+            }
+
+            try
+            {
+                _sigQuit.Dispose();
+            }
+            catch
+            {
+                // Dispose should not throw
+            }
+
+            try
+            {
+                _sigTerm.Dispose();
+            }
+            catch
+            {
+                // Dispose should not throw
+            }
+        }
+
+        try
+        {
+            base.Dispose(disposing);
+        }
+        catch
+        {
+            // Dispose should not throw
         }
     }
 }

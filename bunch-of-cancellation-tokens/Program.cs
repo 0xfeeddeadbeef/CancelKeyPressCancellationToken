@@ -25,6 +25,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
+#pragma warning disable S6966
+
 internal static class Program
 {
     private static async Task Main()
@@ -33,7 +35,7 @@ internal static class Program
 
         try
         {
-            await Run(ctrlC.Token);
+            await Run(ctrlC.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
